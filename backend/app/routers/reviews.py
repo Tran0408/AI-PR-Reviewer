@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import logging
+
+from arq import create_pool
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from app.config import get_settings
 from app.db import get_db
+from app.queue.redis_settings import redis_settings_from_url
 from app.services.github import GitHubClient
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -46,6 +53,98 @@ async def list_reviews(
         "limit": limit,
         "offset": offset,
     }
+
+
+@router.post("/refresh")
+async def refresh_reviews(user_id: str = Query(...)):
+    """
+    Sync PR state with GitHub:
+    - Delete reviews whose PR is closed/merged.
+    - Enqueue new review jobs for open PRs in connected repos that don't yet have a review.
+    """
+    db = get_db()
+    user = await db.user.find_unique(where={"id": user_id})
+    if not user or not user.accessToken:
+        raise HTTPException(status_code=400, detail="User has no access token")
+
+    gh = GitHubClient(token=user.accessToken)
+
+    reviews = await db.review.find_many(
+        where={"repository": {"is": {"userId": user_id}}},
+        include={"repository": True},
+    )
+
+    removed = 0
+    checked_prs: set[tuple[str, int]] = set()
+    for r in reviews:
+        if not r.repository:
+            continue
+        key = (r.repository.fullName, r.prNumber)
+        if key in checked_prs:
+            continue
+        checked_prs.add(key)
+        try:
+            pr = await gh.get_pr_full(r.repository.owner, r.repository.name, r.prNumber)
+        except Exception as e:
+            log.warning("Skip PR refresh for %s#%s: %s", r.repository.fullName, r.prNumber, e)
+            continue
+        if pr.get("state") != "open" or pr.get("merged"):
+            deleted = await db.review.delete_many(
+                where={
+                    "repositoryId": r.repositoryId,
+                    "prNumber": r.prNumber,
+                }
+            )
+            removed += deleted
+
+    repos = await db.repository.find_many(
+        where={"userId": user_id, "connected": True}
+    )
+
+    settings = get_settings()
+    pool = await create_pool(redis_settings_from_url(settings.redis_url))
+    enqueued = 0
+    try:
+        for repo in repos:
+            try:
+                open_prs = await gh._request(
+                    "GET",
+                    f"/repos/{repo.owner}/{repo.name}/pulls?state=open&per_page=50",
+                )
+                prs = open_prs.json()
+            except Exception as e:
+                log.warning("Skip repo scan %s: %s", repo.fullName, e)
+                continue
+            for pr in prs:
+                number = pr.get("number")
+                head_sha = (pr.get("head") or {}).get("sha")
+                if not number or not head_sha:
+                    continue
+                existing = await db.review.find_first(
+                    where={"repositoryId": repo.id, "prNumber": number}
+                )
+                if existing:
+                    continue
+                await pool.enqueue_job(
+                    "process_pr_event",
+                    {
+                        "repo_full_name": repo.fullName,
+                        "pr_number": number,
+                        "commit_sha": head_sha,
+                        "pr_title": pr.get("title", ""),
+                        "pr_body": pr.get("body"),
+                        "pr_author": (pr.get("user") or {}).get("login", "unknown"),
+                        "pr_url": pr.get("html_url", ""),
+                        "repository_id": repo.id,
+                        "installation_token": user.accessToken,
+                    },
+                    _job_id=f"pr:{repo.fullName}:{number}:{head_sha}",
+                )
+                enqueued += 1
+    finally:
+        await pool.close()
+
+    return {"ok": True, "removed": removed, "enqueued": enqueued}
 
 
 @router.get("/{review_id}")

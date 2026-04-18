@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { backend, type ReviewSummary, type Repo } from '@/lib/api';
 import { ScoreBadge } from '@/components/ScoreBadge';
 import { AssessmentBadge } from '@/components/AssessmentBadge';
+import { RefreshReviews } from '@/components/RefreshReviews';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,12 +41,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Reviews</h1>
-        <Link
-          href="/settings"
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-        >
-          Manage repos
-        </Link>
+        <div className="flex items-center gap-2">
+          <RefreshReviews />
+          <Link
+            href="/settings"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+          >
+            Manage repos
+          </Link>
+        </div>
       </div>
 
       <Filters repos={repos.filter((r) => r.connected)} current={searchParams} />
