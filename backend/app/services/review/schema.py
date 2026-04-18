@@ -25,6 +25,9 @@ class ReviewOutput(BaseModel):
     summary: str
     overall_assessment: Assessment
     score: int = Field(..., ge=1, le=10)
+    title_matches_diff: bool = True
+    title_mismatch_note: str | None = None
+    improvement_suggestions: list[str] = Field(default_factory=list)
     inline_comments: list[InlineComment] = Field(default_factory=list)
     security_issues: list[Issue] = Field(default_factory=list)
     performance_issues: list[Issue] = Field(default_factory=list)

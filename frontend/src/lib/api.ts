@@ -59,6 +59,9 @@ export type ReviewDetail = ReviewSummary & {
     summary: string;
     overall_assessment: string;
     score: number;
+    title_matches_diff?: boolean;
+    title_mismatch_note?: string | null;
+    improvement_suggestions?: string[];
     inline_comments: InlineComment[];
     security_issues: Issue[];
     performance_issues: Issue[];

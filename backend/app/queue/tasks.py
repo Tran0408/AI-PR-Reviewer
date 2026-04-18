@@ -165,9 +165,14 @@ def _format_review_body(result) -> str:
         "",
         f"**Score:** {result.score}/10  |  **Assessment:** `{result.overall_assessment}`",
         "",
-        "### Summary",
-        result.summary,
     ]
+    if getattr(result, "title_matches_diff", True) is False:
+        note = getattr(result, "title_mismatch_note", None) or "Title does not match the diff."
+        lines += [f"> ⚠️ **Title mismatch:** {note}", ""]
+    lines += ["### Summary", result.summary]
+    improvements = getattr(result, "improvement_suggestions", None) or []
+    if improvements:
+        lines += ["", "### How to improve this PR", *[f"- {s}" for s in improvements]]
     if result.security_issues:
         lines += ["", "### Security", *[f"- [{i.severity}] {i.description}" for i in result.security_issues]]
     if result.performance_issues:

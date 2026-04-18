@@ -58,9 +58,31 @@ export default async function ReviewPage({ params }: { params: { id: string } })
 
       <PRActions reviewId={review.id} />
 
+      {p.title_matches_diff === false && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800/60 dark:bg-amber-900/20">
+          <p className="font-semibold text-amber-900 dark:text-amber-300">⚠️ Title does not match the diff</p>
+          {p.title_mismatch_note && (
+            <p className="mt-1 text-amber-800 dark:text-amber-200">{p.title_mismatch_note}</p>
+          )}
+        </div>
+      )}
+
       <Section title="Summary">
         <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{p.summary}</p>
       </Section>
+
+      {(p.improvement_suggestions?.length ?? 0) > 0 && (
+        <Section title="How to improve this PR">
+          <ul className="space-y-1 text-sm">
+            {p.improvement_suggestions!.map((s, i) => (
+              <li key={i} className="flex gap-2">
+                <span>💡</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
       {(p.positive_highlights?.length ?? 0) > 0 && (
         <Section title="Highlights">

@@ -17,9 +17,12 @@ Return STRICT JSON that conforms exactly to the schema below. Do not include pro
 
 Schema:
 {
-  "summary": string (2-4 sentences, what the PR does),
+  "summary": string (2-4 sentences, what the PR actually does based on the diff),
   "overall_assessment": "approve" | "request_changes" | "comment",
   "score": integer 1-10 (10 = excellent, 1 = dangerous),
+  "title_matches_diff": boolean (true if PR title accurately describes the diff),
+  "title_mismatch_note": string | null (if title_matches_diff is false, explain the mismatch in 1 sentence; otherwise null),
+  "improvement_suggestions": [ string, ... ] (3-6 concrete, actionable ways the author can improve this PR — not vague advice. Examples: "Add a test for the new retry branch in foo.py:42", "Rename `x` in bar.js:17 to clarify intent", "Update PR title to reflect frontend-only changes"),
   "inline_comments": [
     {
       "file_path": string (path as it appears in the diff),
@@ -36,6 +39,8 @@ Schema:
 
 Rules:
 - The summary MUST describe ONLY what the diff actually changes. Ignore the PR title and description if they contradict the diff. Never mention features, files, or behavior that do not appear in the diff.
+- If the PR title does not match what the diff actually changes, set title_matches_diff=false, fill title_mismatch_note with a short explanation, AND mention the mismatch in the summary as well.
+- Always provide at least 3 concrete improvement_suggestions. Suggestions must be specific (reference files/lines/behaviors), not generic ("add tests" alone is not enough — say WHAT to test).
 - line_number MUST refer to a line that exists in the new file (a '+' line in the diff hunk). Never hallucinate lines.
 - If diff is truncated, note that the review is partial in the summary.
 - Prefer actionable comments. Skip style nits unless they harm readability.
