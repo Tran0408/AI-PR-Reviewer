@@ -62,10 +62,10 @@ export default async function ReviewPage({ params }: { params: { id: string } })
         <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{p.summary}</p>
       </Section>
 
-      {p.positive_highlights.length > 0 && (
+      {(p.positive_highlights?.length ?? 0) > 0 && (
         <Section title="Highlights">
           <ul className="space-y-1 text-sm">
-            {p.positive_highlights.map((h, i) => (
+            {p.positive_highlights!.map((h, i) => (
               <li key={i} className="flex gap-2">
                 <span>✅</span>
                 <span>{h}</span>
@@ -75,22 +75,22 @@ export default async function ReviewPage({ params }: { params: { id: string } })
         </Section>
       )}
 
-      {p.security_issues.length > 0 && (
+      {(p.security_issues?.length ?? 0) > 0 && (
         <Section title="Security">
-          <IssueList items={p.security_issues} />
+          <IssueList items={p.security_issues!} />
         </Section>
       )}
 
-      {p.performance_issues.length > 0 && (
+      {(p.performance_issues?.length ?? 0) > 0 && (
         <Section title="Performance">
-          <IssueList items={p.performance_issues} />
+          <IssueList items={p.performance_issues!} />
         </Section>
       )}
 
-      {p.inline_comments.length > 0 && (
-        <Section title={`Inline comments (${p.inline_comments.length})`}>
+      {(p.inline_comments?.length ?? 0) > 0 && (
+        <Section title={`Inline comments (${p.inline_comments!.length})`}>
           <ul className="space-y-3">
-            {p.inline_comments.map((c, i) => (
+            {p.inline_comments!.map((c, i) => (
               <li
                 key={i}
                 className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
