@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import httpx
 from prisma import Json
 
 from app.config import get_settings
@@ -82,6 +83,28 @@ async def process_pr_event(ctx: dict, event: dict[str, Any]) -> dict[str, Any]:
             comments=comments,
         )
         github_review_id = gh_resp.get("id")
+    except httpx.HTTPStatusError as e:
+        body_text = e.response.text if e.response is not None else ""
+        is_self_pr = e.response is not None and e.response.status_code == 422 and "own pull request" in body_text
+        if is_self_pr and event_str != "COMMENT":
+            log.warning("Self-PR detected for %s#%s, retrying as COMMENT", event["repo_full_name"], number)
+            try:
+                gh_resp = await gh.post_review(
+                    owner,
+                    repo,
+                    number,
+                    commit_id=event["commit_sha"],
+                    body=review_body,
+                    event="COMMENT",
+                    comments=comments,
+                )
+                github_review_id = gh_resp.get("id")
+            except Exception as e2:
+                log.exception("Retry as COMMENT failed for %s#%s", event["repo_full_name"], number)
+                post_error = f"post_review_failed: {e2}"
+        else:
+            log.exception("Failed to post review to GitHub for %s#%s", event["repo_full_name"], number)
+            post_error = f"post_review_failed: {e}"
     except Exception as e:
         log.exception("Failed to post review to GitHub for %s#%s", event["repo_full_name"], number)
         post_error = f"post_review_failed: {e}"
