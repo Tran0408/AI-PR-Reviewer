@@ -48,7 +48,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         </Link>
       </div>
 
-      <Filters repos={repos} current={searchParams} />
+      <Filters repos={repos.filter((r) => r.connected)} current={searchParams} />
 
       {items.length === 0 ? (
         <EmptyState />
