@@ -1,0 +1,24 @@
+import 'next-auth';
+
+declare module 'next-auth' {
+  interface Session {
+    accessToken?: string;
+    user?: {
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      login?: string;
+      githubId?: string;
+      backendUserId?: string | null;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    githubId?: string;
+    login?: string;
+    accessToken?: string | null;
+    backendUserId?: string | null;
+  }
+}

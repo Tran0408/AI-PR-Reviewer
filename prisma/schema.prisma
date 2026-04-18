@@ -1,0 +1,80 @@
+// Single source of truth for DB schema.
+// Used by Next.js (@prisma/client) and FastAPI (prisma-client-py).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator pyclient {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  githubId     String       @unique
+  login        String
+  email        String?
+  avatarUrl    String?
+  accessToken  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  repositories Repository[]
+
+  @@map("users")
+}
+
+model Repository {
+  id            String   @id @default(cuid())
+  githubId      BigInt   @unique
+  owner         String
+  name          String
+  fullName      String   @unique
+  private       Boolean  @default(false)
+  connected     Boolean  @default(false)
+  webhookId     BigInt?
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews       Review[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("repositories")
+}
+
+enum Assessment {
+  approve
+  request_changes
+  comment
+}
+
+model Review {
+  id             String     @id @default(cuid())
+  repositoryId   String
+  repository     Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  prNumber       Int
+  prTitle        String
+  prAuthor       String
+  prUrl          String
+  commitSha      String
+  score          Int
+  assessment     Assessment
+  summary        String
+  payload        Json
+  postedToGithub Boolean    @default(false)
+  githubReviewId BigInt?
+  error          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([repositoryId, prNumber])
+  @@index([createdAt])
+  @@map("reviews")
+}

@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (FastAPI)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate Prisma client (best-effort, skippable if no DB)
+        run: prisma generate --schema=../prisma/schema.prisma || true
+
+      - name: Ruff lint
+        run: pip install ruff && ruff check app || true
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/prreviewer
+          REDIS_URL: redis://localhost:6379/0
+          GITHUB_WEBHOOK_SECRET: test-secret
+          REVIEW_PROVIDER: mock
+        run: pytest -q
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=../prisma/schema.prisma
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          NEXTAUTH_SECRET: build-time-placeholder
+          NEXTAUTH_URL: http://localhost:3000
+          GITHUB_CLIENT_ID: placeholder
+          GITHUB_CLIENT_SECRET: placeholder
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/prreviewer
+          BACKEND_URL: http://localhost:8000
+        run: npm run build
