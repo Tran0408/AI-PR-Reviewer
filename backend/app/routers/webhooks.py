@@ -4,11 +4,11 @@ import json
 import logging
 
 from arq import create_pool
-from arq.connections import RedisSettings
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from app.config import get_settings
 from app.db import get_db
+from app.queue.redis_settings import redis_settings_from_url
 from app.utils.crypto import verify_github_signature
 
 log = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ async def github_webhook(
         log.error("No access token for user behind %s", repo_full_name)
         return {"ok": True, "warning": "no_token"}
 
-    pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+    pool = await create_pool(redis_settings_from_url(settings.redis_url))
     try:
         await pool.enqueue_job(
             "process_pr_event",

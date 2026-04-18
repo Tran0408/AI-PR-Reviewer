@@ -2,12 +2,12 @@ from arq.connections import RedisSettings
 
 from app.config import get_settings
 from app.db import connect, disconnect
+from app.queue.redis_settings import redis_settings_from_url
 from app.queue.tasks import process_pr_event
 
 
 def _redis_settings() -> RedisSettings:
-    url = get_settings().redis_url
-    return RedisSettings.from_dsn(url)
+    return redis_settings_from_url(get_settings().redis_url)
 
 
 async def startup(ctx: dict) -> None:
