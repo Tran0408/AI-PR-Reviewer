@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from prisma import Json
+
 from app.config import get_settings
 from app.db import connect
 from app.services.github import GitHubClient, map_assessment_to_event
@@ -86,7 +88,7 @@ async def process_pr_event(ctx: dict, event: dict[str, Any]) -> dict[str, Any]:
 
     await db.review.create(
         data={
-            "repositoryId": event["repository_id"],
+            "repository": {"connect": {"id": event["repository_id"]}},
             "prNumber": number,
             "prTitle": event["pr_title"],
             "prAuthor": event["pr_author"],
@@ -95,7 +97,7 @@ async def process_pr_event(ctx: dict, event: dict[str, Any]) -> dict[str, Any]:
             "score": result.score,
             "assessment": result.overall_assessment,
             "summary": result.summary,
-            "payload": result.model_dump(),
+            "payload": Json(result.model_dump(mode="json")),
             "postedToGithub": github_review_id is not None,
             "githubReviewId": github_review_id,
             "error": post_error,
@@ -108,7 +110,7 @@ async def _persist_error(db, event: dict[str, Any], message: str) -> None:
     try:
         await db.review.create(
             data={
-                "repositoryId": event["repository_id"],
+                "repository": {"connect": {"id": event["repository_id"]}},
                 "prNumber": int(event["pr_number"]),
                 "prTitle": event.get("pr_title", ""),
                 "prAuthor": event.get("pr_author", ""),
@@ -117,7 +119,7 @@ async def _persist_error(db, event: dict[str, Any], message: str) -> None:
                 "score": 1,
                 "assessment": "comment",
                 "summary": f"Review failed: {message}",
-                "payload": {"error": message},
+                "payload": Json({"error": message}),
                 "postedToGithub": False,
                 "error": message,
             }

@@ -4,6 +4,7 @@ import { backend, type ReviewDetail } from '@/lib/api';
 import { ScoreBadge } from '@/components/ScoreBadge';
 import { AssessmentBadge } from '@/components/AssessmentBadge';
 import { SeverityBadge } from '@/components/SeverityBadge';
+import { PRActions } from '@/components/PRActions';
 
 export default async function ReviewPage({ params }: { params: { id: string } }) {
   let review: ReviewDetail;
@@ -52,6 +53,8 @@ export default async function ReviewPage({ params }: { params: { id: string } })
           {new Date(review.created_at).toLocaleString()}
         </div>
       </header>
+
+      <PRActions reviewId={review.id} />
 
       <Section title="Summary">
         <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{p.summary}</p>

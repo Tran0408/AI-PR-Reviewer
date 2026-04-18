@@ -163,6 +163,48 @@ class GitHubClient:
     async def delete_webhook(self, owner: str, repo: str, hook_id: int) -> None:
         await self._request("DELETE", f"/repos/{owner}/{repo}/hooks/{hook_id}")
 
+    async def get_pr_full(self, owner: str, repo: str, number: int) -> dict[str, Any]:
+        r = await self._request("GET", f"/repos/{owner}/{repo}/pulls/{number}")
+        return r.json()
+
+    async def list_pr_files(self, owner: str, repo: str, number: int) -> list[dict[str, Any]]:
+        files: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            r = await self._request(
+                "GET", f"/repos/{owner}/{repo}/pulls/{number}/files?per_page=100&page={page}"
+            )
+            batch = r.json()
+            if not batch:
+                break
+            files.extend(batch)
+            if len(batch) < 100:
+                break
+            page += 1
+            if page > 10:
+                break
+        return files
+
+    async def merge_pr(
+        self,
+        owner: str,
+        repo: str,
+        number: int,
+        *,
+        method: str = "merge",
+        commit_title: str | None = None,
+        commit_message: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"merge_method": method}
+        if commit_title:
+            payload["commit_title"] = commit_title
+        if commit_message:
+            payload["commit_message"] = commit_message
+        r = await self._request(
+            "PUT", f"/repos/{owner}/{repo}/pulls/{number}/merge", json=payload
+        )
+        return r.json()
+
 
 def map_assessment_to_event(assessment: str) -> str:
     return {
