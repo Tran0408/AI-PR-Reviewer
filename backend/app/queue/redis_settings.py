@@ -18,11 +18,15 @@ def redis_settings_from_url(url: str) -> RedisSettings:
             database = int(u.path.strip("/"))
         except ValueError:
             database = 0
-    return RedisSettings(
-        host=u.hostname or "localhost",
-        port=u.port or 6379,
-        username=u.username or None,
-        password=u.password or None,
-        database=database,
-        ssl=(scheme == "rediss"),
-    )
+    is_tls = scheme == "rediss"
+    kwargs: dict = {
+        "host": u.hostname or "localhost",
+        "port": u.port or 6379,
+        "username": u.username or None,
+        "password": u.password or None,
+        "database": database,
+        "ssl": is_tls,
+    }
+    if is_tls:
+        kwargs["ssl_cert_reqs"] = "none"
+    return RedisSettings(**kwargs)
