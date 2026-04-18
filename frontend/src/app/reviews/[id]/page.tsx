@@ -6,6 +6,8 @@ import { AssessmentBadge } from '@/components/AssessmentBadge';
 import { SeverityBadge } from '@/components/SeverityBadge';
 import { PRActions } from '@/components/PRActions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ReviewPage({ params }: { params: { id: string } }) {
   let review: ReviewDetail;
   try {

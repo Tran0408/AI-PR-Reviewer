@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { backend, type Repo } from '@/lib/api';
 import { SettingsClient } from './SettingsClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/api/auth/signin');

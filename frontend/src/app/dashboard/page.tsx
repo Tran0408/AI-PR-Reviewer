@@ -6,6 +6,8 @@ import { backend, type ReviewSummary, type Repo } from '@/lib/api';
 import { ScoreBadge } from '@/components/ScoreBadge';
 import { AssessmentBadge } from '@/components/AssessmentBadge';
 
+export const dynamic = 'force-dynamic';
+
 type SearchParams = {
   repo?: string;
   assessment?: string;
